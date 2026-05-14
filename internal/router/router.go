@@ -1,18 +1,24 @@
 package router
 
 import (
-	"security-monitor/internal/handler"
-
 	"github.com/gin-gonic/gin"
+
+	"security-monitor/internal/handler"
 )
 
-func Init() *gin.Engine {
+func Init(
+	eventHandler *handler.EventHandler,
+) *gin.Engine {
+
 	r := gin.Default()
 
-	api := r.Group("/api")
+	api := r.Group("/api/v1")
 
+	events := api.Group("/events")
 	{
-		api.GET("/health", handler.HealthCheck)
+		events.POST("", eventHandler.Create)
+		events.GET("", eventHandler.GetAll)
+		events.DELETE("/:ulid", eventHandler.Delete)
 	}
 
 	return r

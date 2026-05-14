@@ -4,6 +4,12 @@ run:
 migration:
 	migrate create -ext sql -dir migrations -seq $(name)
 
+dev:
+	air -c .air.toml
+
+build:
+	go build -o bin/app cmd/api/main.go
+
 migrate-up:
 	migrate -path migrations \
 	-database "postgres://admin:admin@localhost:5432/security_monitor?sslmode=disable" \
