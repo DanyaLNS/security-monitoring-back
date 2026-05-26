@@ -3,109 +3,52 @@ package repository
 import (
 	"context"
 
-	"security-monitor/internal/domain"
-
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/yourname/security-monitor/internal/domain"
 )
 
-type EventRepository interface {
-	Create(ctx context.Context, event *domain.Event) error
-	GetAll(ctx context.Context) ([]domain.Event, error)
-	Delete(ctx context.Context, ulid string) error
-}
-
-type postgresEventRepository struct {
+type EventRepo struct {
 	db *pgxpool.Pool
 }
 
-func NewPostgresEventRepository(db *pgxpool.Pool) EventRepository {
-	return &postgresEventRepository{
-		db: db,
-	}
+func NewEventRepo(db *pgxpool.Pool) *EventRepo {
+	return &EventRepo{db: db}
 }
 
-func (r *postgresEventRepository) Create(
-	ctx context.Context,
-	event *domain.Event,
-) error {
-
-	query := `
-	INSERT INTO events (
-		ulid,
-		source_ulid,
-		type_ulid,
-		severity,
-		status,
-		title,
-		source_ip,
-		destination_ip,
-		hostname,
-		occurred_at,
-		raw_payload,
-		normalized_payload
+func (r *EventRepo) Create(ctx context.Context, e domain.Event) error {
+	_, err := r.db.Exec(ctx,
+		`INSERT INTO events (
+		 ulid, source_ulid, type_ulid, severity, status,
+		 title, source_ip, destination_ip, hostname,
+		 occurred_at, raw_payload, normalized_payload
+		) VALUES (
+		 $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
+		)`,
+		e.ULID, e.SourceULID, e.TypeULID, e.Severity, e.Status,
+		e.Title, e.SourceIP, e.DestinationIP, e.Hostname,
+		e.OccurredAt, e.RawPayload, e.NormalizedPayload,
 	)
-	VALUES (
-		$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12
-	)
-	`
-
-	_, err := r.db.Exec(
-		ctx,
-		query,
-		event.ULID,
-		event.SourceULID,
-		event.TypeULID,
-		event.Severity,
-		event.Status,
-		event.Title,
-		event.SourceIP,
-		event.DestinationIP,
-		event.Hostname,
-		event.OccurredAt,
-		event.RawPayload,
-		event.NormalizedPayload,
-	)
-
 	return err
 }
 
-func (r *postgresEventRepository) GetAll(
-	ctx context.Context,
-) ([]domain.Event, error) {
-
-	query := `
-	SELECT
-		ulid,
-		source_ulid,
-		type_ulid,
-		severity,
-		status,
-		title,
-		source_ip,
-		destination_ip,
-		hostname,
-		occurred_at,
-		raw_payload,
-		normalized_payload,
-		created_at,
-		updated_at
-	FROM events
-	ORDER BY occurred_at DESC
-	`
-
-	rows, err := r.db.Query(ctx, query)
+func (r *EventRepo) GetAll(ctx context.Context) ([]domain.Event, error) {
+	rows, err := r.db.Query(ctx,
+		`SELECT ulid, source_ulid, type_ulid, severity, status,
+		 title, source_ip, destination_ip, hostname,
+		 occurred_at, raw_payload, normalized_payload,
+		 created_at, updated_at
+		 FROM events ORDER BY occurred_at DESC`,
+	)
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
-	var events []domain.Event
+	var res []domain.Event
 
 	for rows.Next() {
 		var e domain.Event
-
-		err := rows.Scan(
+		rows.Scan(
 			&e.ULID,
 			&e.SourceULID,
 			&e.TypeULID,
@@ -121,25 +64,13 @@ func (r *postgresEventRepository) GetAll(
 			&e.CreatedAt,
 			&e.UpdatedAt,
 		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		events = append(events, e)
+		res = append(res, e)
 	}
 
-	return events, nil
+	return res, nil
 }
 
-func (r *postgresEventRepository) Delete(
-	ctx context.Context,
-	ulid string,
-) error {
-
-	query := `DELETE FROM events WHERE ulid = $1`
-
-	_, err := r.db.Exec(ctx, query, ulid)
-
+func (r *EventRepo) Delete(ctx context.Context, ulid string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM events WHERE ulid=$1`, ulid)
 	return err
 }
