@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	"security-monitor/internal/domain"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourname/security-monitor/internal/domain"
 )
 
 type EventAnalysisRepo struct {

@@ -2,11 +2,9 @@ package main
 
 import (
 	"log"
+
+	"security-monitor/internal/app"
 	"security-monitor/internal/config"
-	"security-monitor/internal/handler"
-	"security-monitor/internal/repository"
-	"security-monitor/internal/router"
-	"security-monitor/internal/service"
 	"security-monitor/internal/storage"
 )
 
@@ -22,11 +20,9 @@ func main() {
 	}
 	defer db.Close()
 
-	repo := repository.NewPostgresEventRepository(db)
-	service := service.NewEventService(repo)
-	handler := handler.NewEventHandler(service)
+	application := app.New(cfg, db)
 
-	r := router.Init(handler)
-
-	log.Fatal(r.Run(":" + cfg.AppPort))
+	if err := application.Run(); err != nil {
+		log.Fatal(err)
+	}
 }

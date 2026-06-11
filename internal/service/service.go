@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -58,20 +59,21 @@ func (s *EventService) Create(
 		NormalizedPayload: normalizedPayload,
 	}
 
-	return s.repo.Create(ctx, event)
+	fmt.Print(event)
+	return nil
 }
 
 func (s *EventService) GetAll(
 	ctx context.Context,
 ) ([]domain.Event, error) {
-	return s.repo.GetAll(ctx)
+	return nil, nil
 }
 
 func (s *EventService) Delete(
 	ctx context.Context,
 	ulid string,
 ) error {
-	return s.repo.Delete(ctx, ulid)
+	return nil
 }
 
 func generateULID() string {

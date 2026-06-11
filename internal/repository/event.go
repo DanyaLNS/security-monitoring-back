@@ -2,10 +2,16 @@ package repository
 
 import (
 	"context"
+	"security-monitor/internal/domain"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yourname/security-monitor/internal/domain"
 )
+
+type EventRepository interface {
+	Create(ctx context.Context, e domain.Event) error
+	GetAll(ctx context.Context) ([]domain.Event, error)
+	Delete(ctx context.Context, ulid string) error
+}
 
 type EventRepo struct {
 	db *pgxpool.Pool
