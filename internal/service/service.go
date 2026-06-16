@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/oklog/ulid/v2"
-
 	"security-monitor/internal/domain"
 	"security-monitor/internal/dto"
 	"security-monitor/internal/repository"
+
+	"github.com/oklog/ulid/v2"
 )
 
 type EventService struct {
@@ -30,22 +30,35 @@ func (s *EventService) Create(
 	ctx context.Context,
 	req dto.CreateEventRequest,
 ) error {
+	if req.Severity < 0 || req.Severity > 10 {
+		return fmt.Errorf("severity must be between 0 and 10")
+	}
 
-	rawPayload, _ := json.Marshal(req.RawPayload)
-	normalizedPayload, _ := json.Marshal(req.NormalizedPayload)
-
-	occurredAt, err := time.Parse(
-		time.RFC3339,
-		req.OccurredAt,
-	)
-
+	rawPayload, err := json.Marshal(req.RawPayload)
 	if err != nil {
 		return err
 	}
 
-	event := &domain.Event{
-		ULID: generateULID(),
+	var normalizedPayload []byte
+	if req.NormalizedPayload != nil {
+		normalizedPayload, err = json.Marshal(req.NormalizedPayload)
+		if err != nil {
+			return err
+		}
+	}
 
+	occurredAt, err := time.Parse(time.RFC3339, req.OccurredAt)
+	if err != nil {
+		return err
+	}
+
+	ulid, err := generateULID()
+	if err != nil {
+		return err
+	}
+
+	event := domain.Event{
+		ULID:              ulid,
 		SourceULID:        req.SourceULID,
 		TypeULID:          req.TypeULID,
 		Severity:          req.Severity,
@@ -59,30 +72,30 @@ func (s *EventService) Create(
 		NormalizedPayload: normalizedPayload,
 	}
 
-	fmt.Print(event)
-	return nil
+	return s.repo.Create(ctx, event)
 }
 
 func (s *EventService) GetAll(
 	ctx context.Context,
 ) ([]domain.Event, error) {
-	return nil, nil
+	return s.repo.GetAll(ctx)
 }
 
 func (s *EventService) Delete(
 	ctx context.Context,
 	ulid string,
 ) error {
-	return nil
+	return s.repo.Delete(ctx, ulid)
 }
 
-func generateULID() string {
-	t := time.Now()
-
-	id, _ := ulid.New(
-		ulid.Timestamp(t),
+func generateULID() (string, error) {
+	id, err := ulid.New(
+		ulid.Timestamp(time.Now()),
 		rand.Reader,
 	)
+	if err != nil {
+		return "", err
+	}
 
-	return id.String()
+	return id.String(), nil
 }
