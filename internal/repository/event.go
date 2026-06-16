@@ -2,15 +2,17 @@ package repository
 
 import (
 	"context"
+	"fmt"
 
 	"security-monitor/internal/domain"
+	"security-monitor/internal/dto"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type EventRepository interface {
 	Create(ctx context.Context, e domain.Event) error
-	GetAll(ctx context.Context) ([]domain.Event, error)
+	GetAll(ctx context.Context, filter dto.EventFilter) ([]domain.Event, error)
 	Delete(ctx context.Context, ulid string) error
 }
 
@@ -57,9 +59,12 @@ func (r *EventRepo) Create(ctx context.Context, e domain.Event) error {
 	return err
 }
 
-func (r *EventRepo) GetAll(ctx context.Context) ([]domain.Event, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT
+func (r *EventRepo) GetAll(
+	ctx context.Context,
+	filter dto.EventFilter,
+) ([]domain.Event, error) {
+	query := `
+		SELECT
 			ulid,
 			source_ulid,
 			type_ulid,
@@ -75,8 +80,63 @@ func (r *EventRepo) GetAll(ctx context.Context) ([]domain.Event, error) {
 			created_at,
 			updated_at
 		FROM events
-		ORDER BY occurred_at DESC`,
-	)
+		WHERE 1 = 1
+	`
+
+	args := make([]any, 0)
+	argID := 1
+
+	if filter.Severity != nil {
+		query += fmt.Sprintf(" AND severity = $%d", argID)
+		args = append(args, *filter.Severity)
+		argID++
+	}
+
+	if filter.TypeULID != nil {
+		query += fmt.Sprintf(" AND type_ulid = $%d", argID)
+		args = append(args, *filter.TypeULID)
+		argID++
+	}
+
+	if filter.SourceULID != nil {
+		query += fmt.Sprintf(" AND source_ulid = $%d", argID)
+		args = append(args, *filter.SourceULID)
+		argID++
+	}
+
+	if filter.Status != nil {
+		query += fmt.Sprintf(" AND status = $%d", argID)
+		args = append(args, *filter.Status)
+		argID++
+	}
+
+	if filter.From != nil {
+		query += fmt.Sprintf(" AND occurred_at >= $%d", argID)
+		args = append(args, *filter.From)
+		argID++
+	}
+
+	if filter.To != nil {
+		query += fmt.Sprintf(" AND occurred_at <= $%d", argID)
+		args = append(args, *filter.To)
+		argID++
+	}
+
+	if filter.Hostname != nil {
+		query += fmt.Sprintf(" AND hostname = $%d", argID)
+		args = append(args, *filter.Hostname)
+		argID++
+	}
+
+	if filter.SourceIP != nil {
+		query += fmt.Sprintf(" AND source_ip = $%d", argID)
+		args = append(args, *filter.SourceIP)
+		argID++
+	}
+
+	query += " ORDER BY occurred_at DESC"
+
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +175,6 @@ func (r *EventRepo) GetAll(ctx context.Context) ([]domain.Event, error) {
 
 	return events, nil
 }
-
 func (r *EventRepo) Delete(ctx context.Context, ulid string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM events WHERE ulid = $1`, ulid)
 	return err

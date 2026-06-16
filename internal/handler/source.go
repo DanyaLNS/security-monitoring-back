@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"security-monitor/internal/domain"
+	"security-monitor/internal/dto"
 	"security-monitor/internal/service"
 )
 
@@ -22,7 +22,7 @@ func NewSourceHandler(
 }
 
 func (h *SourceHandler) Create(c *gin.Context) {
-	var input domain.EventSource
+	var input dto.CreateEventSource
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -31,7 +31,7 @@ func (h *SourceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Create(c.Request.Context(), input)
+	source, err := h.service.Create(c.Request.Context(), input)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -39,11 +39,11 @@ func (h *SourceHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, result)
+	c.JSON(http.StatusCreated, source)
 }
 
 func (h *SourceHandler) GetAll(c *gin.Context) {
-	result, err := h.service.GetAll(c.Request.Context())
+	sources, err := h.service.GetAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -51,13 +51,13 @@ func (h *SourceHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, sources)
 }
 
 func (h *SourceHandler) GetByULID(c *gin.Context) {
 	ulid := c.Param("ulid")
 
-	result, err := h.service.GetByULID(c.Request.Context(), ulid)
+	source, err := h.service.GetByULID(c.Request.Context(), ulid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
@@ -65,14 +65,14 @@ func (h *SourceHandler) GetByULID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, source)
 }
 
 func (h *SourceHandler) Delete(c *gin.Context) {
 	ulid := c.Param("ulid")
 
 	if err := h.service.Delete(c.Request.Context(), ulid); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.JSON(http.StatusNotFound, gin.H{
 			"error": err.Error(),
 		})
 		return

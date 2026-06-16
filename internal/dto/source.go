@@ -1,16 +1,15 @@
 package dto
 
-type CreateEventType struct {
-	Code        string  `json:"code" binding:"required"`
+type CreateEventSource struct {
 	Name        string  `json:"name" binding:"required"`
 	Description *string `json:"description"`
 }
 
-type EventTypeResponse struct {
+type EventSourceResponse struct {
 	ULID        string  `json:"ulid"`
-	Code        string  `json:"code"`
 	Name        string  `json:"name"`
 	Description *string `json:"description"`
+	Status      string  `json:"status"`
 	EventsCount int     `json:"events_count"`
 	LastSeen    *string `json:"last_seen"`
 	CreatedAt   string  `json:"created_at"`

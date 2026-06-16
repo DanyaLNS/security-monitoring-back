@@ -1,6 +1,9 @@
 package router
 
 import (
+	"time"
+
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	"security-monitor/internal/handler"
@@ -10,59 +13,110 @@ func Init(
 	eventHandler *handler.EventHandler,
 	sourceHandler *handler.SourceHandler,
 	eventTypeHandler *handler.EventTypeHandler,
-	dashboardHandler *handler.DashboardHandler,
 	incidentHandler *handler.IncidentHandler,
-	analysisHandler *handler.AnalysisHandler,
 ) *gin.Engine {
-
 	r := gin.Default()
 
-	api := r.Group("/api/v1")
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:5173",
+			"http://127.0.0.1:5173",
+		},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+		},
+		ExposeHeaders: []string{
+			"Content-Length",
+		},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
-	events := api.Group("/events")
-	{
-		events.POST("", eventHandler.Create)
-		events.GET("", eventHandler.GetAll)
-		events.DELETE("/:ulid", eventHandler.Delete)
-	}
-
-	sources := api.Group("/sources")
-	{
-		sources.POST("", sourceHandler.Create)
-		sources.GET("", sourceHandler.GetAll)
-		sources.GET("/:ulid", sourceHandler.GetByULID)
-		sources.DELETE("/:ulid", sourceHandler.Delete)
-	}
-
-	eventTypes := api.Group("/event-types")
-	{
-		eventTypes.POST("", eventTypeHandler.Create)
-		eventTypes.GET("", eventTypeHandler.GetAll)
-		eventTypes.GET("/:ulid", eventTypeHandler.GetByULID)
-		eventTypes.DELETE("/:ulid", eventTypeHandler.Delete)
-	}
-
-	dashboard := api.Group("/dashboard")
-	{
-		dashboard.GET("/metrics", dashboardHandler.GetMetrics)
-		dashboard.GET("/timeline", dashboardHandler.GetTimeline)
-		dashboard.GET("/severity-distribution", dashboardHandler.GetSeverityDistribution)
-		dashboard.GET("/top-sources", dashboardHandler.GetTopSources)
-		dashboard.GET("/recent-events", dashboardHandler.GetRecentEvents)
-	}
-
-	incidents := api.Group("/incidents")
-	{
-		incidents.GET("", incidentHandler.GetAll)
-		incidents.GET("/:ulid", incidentHandler.GetByULID)
-		incidents.GET("/:ulid/events", incidentHandler.GetIncidentEvents)
-	}
-
-	analysis := api.Group("/analysis")
-	{
-		analysis.GET("", analysisHandler.GetAll)
-		analysis.GET("/:event_ulid", analysisHandler.GetByEventULID)
-	}
+	registerHealthRoutes(r)
+	registerIngestRoutes(r, eventHandler)
+	registerCoreRoutes(
+		r,
+		eventHandler,
+		sourceHandler,
+		eventTypeHandler,
+		incidentHandler,
+	)
 
 	return r
+}
+
+func registerHealthRoutes(r *gin.Engine) {
+	r.GET("/health", handler.HealthCheck)
+}
+
+func registerIngestRoutes(
+	r *gin.Engine,
+	eventHandler *handler.EventHandler,
+) {
+	ingest := r.Group("/api/ingest/v1")
+	{
+		ingest.GET("/health", handler.HealthCheck)
+
+		events := ingest.Group("/events")
+		{
+			events.POST("", eventHandler.Create)
+		}
+	}
+}
+
+func registerCoreRoutes(
+	r *gin.Engine,
+	eventHandler *handler.EventHandler,
+	sourceHandler *handler.SourceHandler,
+	eventTypeHandler *handler.EventTypeHandler,
+	incidentHandler *handler.IncidentHandler,
+) {
+	core := r.Group("/api/core/v1")
+	{
+		core.GET("/health", handler.HealthCheck)
+
+		events := core.Group("/events")
+		{
+			events.GET("", eventHandler.GetAll)
+			events.DELETE("/:ulid", eventHandler.Delete)
+		}
+
+		sources := core.Group("/sources")
+		{
+			sources.POST("", sourceHandler.Create)
+			sources.GET("", sourceHandler.GetAll)
+			sources.GET("/:ulid", sourceHandler.GetByULID)
+			sources.DELETE("/:ulid", sourceHandler.Delete)
+		}
+
+		eventTypes := core.Group("/event-types")
+		{
+			eventTypes.POST("", eventTypeHandler.Create)
+			eventTypes.GET("", eventTypeHandler.GetAll)
+			eventTypes.GET("/:ulid", eventTypeHandler.GetByULID)
+			eventTypes.DELETE("/:ulid", eventTypeHandler.Delete)
+		}
+
+		incidents := core.Group("/incidents")
+		{
+			incidents.POST("", incidentHandler.Create)
+			incidents.GET("", incidentHandler.GetAll)
+			incidents.GET("/:ulid", incidentHandler.GetByULID)
+			incidents.PATCH("/:ulid", incidentHandler.Update)
+			incidents.DELETE("/:ulid", incidentHandler.Delete)
+			incidents.GET("/:ulid/events", incidentHandler.GetIncidentEvents)
+			incidents.POST("/:ulid/events", incidentHandler.AddEvents)
+		}
+	}
 }

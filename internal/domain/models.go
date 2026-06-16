@@ -18,29 +18,28 @@ type EventType struct {
 }
 
 type Event struct {
-	ULID              string
-	SourceULID        string
-	TypeULID          string
-	Severity          int
-	Status            string
-	Title             string
-	SourceIP          *string
-	DestinationIP     *string
-	Hostname          *string
-	OccurredAt        time.Time
-	RawPayload        []byte
-	NormalizedPayload []byte
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ULID              string    `json:"ulid"`
+	SourceULID        string    `json:"source_ulid"`
+	TypeULID          string    `json:"type_ulid"`
+	Severity          int       `json:"severity"`
+	Status            string    `json:"status"`
+	Title             string    `json:"title"`
+	SourceIP          *string   `json:"source_ip"`
+	DestinationIP     *string   `json:"destination_ip"`
+	Hostname          *string   `json:"hostname"`
+	OccurredAt        time.Time `json:"occurred_at"`
+	RawPayload        []byte    `json:"raw_payload"`
+	NormalizedPayload []byte    `json:"normalized_payload"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
-type EventAnalysis struct {
-	ULID            string
-	EventULID       string
-	ThreatScore     float64
-	ThreatLevel     string
-	DetectionMethod *string
-	AnalysisSummary *string
-	Recommendations *string
-	AnalyzedAt      time.Time
+type Incident struct {
+	ULID        string
+	Title       string
+	Description *string
+	Severity    int
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }

@@ -77,8 +77,15 @@ func (s *EventService) Create(
 
 func (s *EventService) GetAll(
 	ctx context.Context,
+	filter dto.EventFilter,
 ) ([]domain.Event, error) {
-	return s.repo.GetAll(ctx)
+	if filter.Severity != nil {
+		if *filter.Severity < 0 || *filter.Severity > 10 {
+			return nil, fmt.Errorf("severity must be between 0 and 10")
+		}
+	}
+
+	return s.repo.GetAll(ctx, filter)
 }
 
 func (s *EventService) Delete(

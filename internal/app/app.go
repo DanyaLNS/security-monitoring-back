@@ -21,25 +21,21 @@ type Repositories struct {
 	Events     *repository.EventRepo
 	Sources    *repository.EventSourceRepo
 	EventTypes *repository.EventTypeRepo
-	Analysis   *repository.EventAnalysisRepo
+	Incidents  *repository.IncidentRepo
 }
 
 type Services struct {
 	Events     *service.EventService
 	Sources    *service.SourceService
 	EventTypes *service.EventTypeService
-	Dashboard  *service.DashboardService
 	Incidents  *service.IncidentService
-	Analysis   *service.AnalysisService
 }
 
 type Handlers struct {
 	Events     *handler.EventHandler
 	Sources    *handler.SourceHandler
 	EventTypes *handler.EventTypeHandler
-	Dashboard  *handler.DashboardHandler
 	Incidents  *handler.IncidentHandler
-	Analysis   *handler.AnalysisHandler
 }
 
 func New(cfg *config.Config, db *pgxpool.Pool) *App {
@@ -51,9 +47,7 @@ func New(cfg *config.Config, db *pgxpool.Pool) *App {
 		handlers.Events,
 		handlers.Sources,
 		handlers.EventTypes,
-		handlers.Dashboard,
 		handlers.Incidents,
-		handlers.Analysis,
 	)
 
 	return &App{
@@ -72,24 +66,16 @@ func newRepositories(db *pgxpool.Pool) *Repositories {
 		Events:     repository.NewEventRepo(db),
 		Sources:    repository.NewEventSourceRepo(db),
 		EventTypes: repository.NewEventTypeRepo(db),
-		Analysis:   repository.NewEventAnalysisRepo(db),
+		Incidents:  repository.NewIncidentRepo(db),
 	}
 }
 
 func newServices(repos *Repositories) *Services {
 	return &Services{
-		Events: service.NewEventService(repos.Events),
-
-		// Пока эти сервисы у тебя заглушечные.
-		// Позже лучше заменить на конструкторы вида:
-		// service.NewSourceService(repos.Sources)
-		// service.NewEventTypeService(repos.EventTypes)
-		// service.NewAnalysisService(repos.Analysis)
-		Sources:    &service.SourceService{},
-		EventTypes: &service.EventTypeService{},
-		Dashboard:  &service.DashboardService{},
-		Incidents:  &service.IncidentService{},
-		Analysis:   &service.AnalysisService{},
+		Events:     service.NewEventService(repos.Events),
+		Sources:    service.NewSourceService(repos.Sources),
+		EventTypes: service.NewEventTypeService(repos.EventTypes),
+		Incidents:  service.NewIncidentService(repos.Incidents),
 	}
 }
 
@@ -98,8 +84,6 @@ func newHandlers(services *Services) *Handlers {
 		Events:     handler.NewEventHandler(services.Events),
 		Sources:    handler.NewSourceHandler(services.Sources),
 		EventTypes: handler.NewEventTypeHandler(services.EventTypes),
-		Dashboard:  handler.NewDashboardHandler(services.Dashboard),
 		Incidents:  handler.NewIncidentHandler(services.Incidents),
-		Analysis:   handler.NewAnalysisHandler(services.Analysis),
 	}
 }
